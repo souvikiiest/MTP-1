@@ -13,14 +13,14 @@ L=L_bound/2 - B/2;    % left edge distance from origin
 L_fan_mesh_each_side = B/2;
 N_foot_soil_interf = 6; % for half footing width
 %% Control Parameters
-b_by_B = 2;
+b_by_B = 4;
 d_by_Df = 2;
 
 
 
 %% Tunnel Inputs
 radius = 0.5;
-no_of_interface = 48;
+no_of_interface = 24;
 x_coor_circle_center = (L+B/2 + b_by_B * B);
 y_coor_circle_center = -(Df + d_by_Df * Df);
 no_of_circles = 2;
@@ -51,6 +51,7 @@ new_y_coord = adjusted_square_coords(1,2)+distance_of_first_square;
 [radial_increment,All_radial_points,square_points] = DrawInterface(radius,no_of_interface,new_x_coord,new_y_coord,no_of_circles,distance_of_first_square);
 [All_radial_and_sqaure_points] = ArrangeAllRadial_SquarePoints(All_radial_points,square_points,no_of_interface,no_of_circles);
 
+result = processMesh(intersections);
 
 footing_x=[L,L,L+B,L+B];
 footing_y = [-Df+0.2,-Df,-Df,-Df+0.2];
@@ -467,6 +468,63 @@ function [x_intersections, y_intersections] = plotAndStoreIntersectionsInvertica
 end
 
 
+%% store coordinated in arranged way
+function result = processMesh(intersection)
+    % Find unique x-coordinates
+    uniqueX = unique(intersection(:, 1)); 
+
+    % Find unique y-coordinates
+    uniqueY = unique(intersection(:, 2));
+    
+    % Initialize output array
+    outputArray = NaN(length(uniqueY), 2*length(uniqueX));
+    outputArray(:, 1) = uniqueX(1);
+    outputArray(:, 2) = uniqueY;
+    
+    % Populate the array
+    for i = 2:length(uniqueX)
+        x = uniqueX(i);
+        outputArray(:, 2*i-1) = x; % filling x-coordinates
+        
+        for j = 1:length(uniqueY)
+            y = uniqueY(j);
+            
+            % Check if this (x, y) pair exists in the intersection
+            index = find(intersection(:, 1) == x & intersection(:, 2) == y, 1);
+            
+            if ~isempty(index)
+                % If the pair exists, fill the corresponding value
+                outputArray(j, 2*i) = intersection(index, 2);
+            else
+                % If the pair does not exist, put NaN
+                outputArray(j, 2*i) = NaN;
+            end
+        end
+    end
+    
+    result = outputArray;
+  for j = 1:2:size(outputArray, 2) - 3
+        for i = 1:size(outputArray, 1) - 1
+            x1 = outputArray(i, j);
+            y1 = outputArray(i, j + 1);
+            x3 = outputArray(i, j + 2);
+            y3 = outputArray(i, j + 3); 
+            
+            x2 = outputArray(i + 1, j);
+            y2 = outputArray(i + 1, j + 1);
+            x4 = outputArray(i + 1, j + 2);
+            y4 = outputArray(i + 1, j + 3);
+    
+            % Check for NaN values
+            if ~any(isnan([x1, x2, x3, x4, y1, y2, y3, y4]))
+                Divide_Quadri(x1, x2, x3, x4, y1, y2, y3, y4);
+            end
+        end
+   end
+
+
+
+end
 
 
 %% divide quadrilateral into triangles
@@ -490,3 +548,4 @@ function [x_coord_midpoint,y_coord_midpoint] = Divide_Quadri (x1,x2,x3,x4,y1,y2,
     y_coord_midpoint = m2*x_coord_midpoint + c2;
 
 end
+
