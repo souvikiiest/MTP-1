@@ -3,14 +3,14 @@ clear all;
 % clearvars -except phiii fi_values N_g_results;
 
 plot_enabled = true;
-draw_tunnel = false;
-isTunnelChanging = false;
+draw_tunnel = true;
+isTunnelChanging = true;
 
 %% Footing Inputs
 B=1;                                             % width of footing
 Df=1;                                           % Depth of footing
 Df_fan_mesh = B/2;                     % height of fan mesh
-L_bound = 20;                             %Length of boundary 16
+L_bound = 16;                             %Length of boundary 16
 D_bound = 8;                              % Depth of boundary  8
 L=L_bound/2 - B/2;                    % left edge distance from origin
 L_fan_mesh_each_side = B/2;
@@ -18,10 +18,10 @@ N_foot_soil_interf = 10;                 % for half footing width
 
 %% Control Parameters
 b_by_B = 0;
-d_by_Df = 15;
+d_by_Df = 0.5;
 gamma = 0;
 p = 12;
-fi =30;
+fi =20;
 c = 20;
 
 %% Tunnel Inputs
@@ -107,13 +107,14 @@ end
 %  file name based on b/B and d/Df values
 fileName = [folderName '/b_B_' num2str(b_by_B) '_d_Df_' num2str(d_by_Df) '.mat'];
 
+
 %% Function call for different conditions
 if isTunnelChanging
-
+   
     [A_element, B_element] = ElementEquilibrium(final_nodes_array, no_of_element, gamma);
     [A_bound, B_Boundary] = BoundaryCondition(Df, top_boundary_array, side_boundary_array, tunnel_interface_array, footing_interface_array, no_of_element, draw_tunnel);
     [A_discontinuity, B_discontinuity] = DiscontinuityEquilibrium(result_edges, no_of_element);
-
+    
     save(fileName, 'A_element', 'B_element', 'A_bound', 'B_Boundary', 'A_discontinuity', 'B_discontinuity');
 else
     % Load the saved data if no need to recalculate
@@ -125,6 +126,8 @@ else
 end
 % A_yield and B_yield are always recalculated
 [A_Yield, B_yield] = YieldEquilibrium(no_of_element, p, fi, c);
+
+%% Objective function
 C_matrix = ObjectiveFunction(footing_interface_array,no_of_element, side_boundary_array,tunnel_interface_array);
 
 
@@ -153,6 +156,20 @@ A1 = [A1,zerosMatrix];
 B1 = [B_element;B_discontinuity;B_Boundary];
 A2 = A_Yield;
 B2 = B_yield;
+
+% f=-(C_matrix');
+%  options = optimoptions('linprog', 'Algorithm', 'dual-simplex');
+ % [X,fval,exitflag,output]=linprog(f,A2,B2,A1,B1); %,[],[],options
+ % N_c= -fval/(c*B);
+% N_g = -(fval)/(gamma*B*B);
+% N_q = -(fval);
+% 
+% 
+% fprintf("p = %d, c = %d, fi = %d \n",p,c,fi);
+% disp("Collapse Load: "+ -fval);
+% disp("Nc: "+N_c);
+
+
 
 
 %% this draws both rectangular as well as the radial mesh for the footing
