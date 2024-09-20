@@ -1,4 +1,4 @@
-% 
+warning('off');
 X1=X;
 Elem_X= ElemX;
 Elem_Y= ElemY;
@@ -82,9 +82,9 @@ for i=1:nc
 end
 
 axis equal
-% colormap_array = red_to_cyan(264);
-% colormap(flipud(colormap_array));
-colormap("jet");
+colormap_array = red_to_cyan(264);
+colormap(flipud(colormap_array));
+% colormap("jet");
 
 hcol=colorbar;
 cpos=get(hcol,'Position');
@@ -101,7 +101,7 @@ Zval = max(Zinterp(:)) + 1;
 footing_x = [L,L,L+B,L+B,L];
 footing_y = [0,-Df,-Df,0,0];
 fill_footing_region_3D(footing_x,footing_y,Zval);
-% fill_circle_region_3D(tunnel_interface, Zval);
+fill_circle_region_3D(tunnel_interface, Zval);
 
 xlabel('x/B','Fontweight','bold','Fontsize',15);
 ylabel('y/B','Fontweight','bold','Fontsize',15);
@@ -113,8 +113,14 @@ axis([xmin-0.15 xmax ymin-0.15 ymax])
 % set(gca,'YTick',[-8 -6 -4 -2 0]);
 % set(gca,'YTickLabel','-8|-6|-4|-2|0')
 box off;
-filename = sprintf('plot_fi_%d.fig', fi);  % Create a filename based on fi
-savefig(filename); 
+
+figuresFolder = fullfile(subFolderName, 'figures');
+if ~exist(figuresFolder, 'dir')
+    mkdir(figuresFolder);  % Create the folder if it doesn't exist
+end
+fileName_figure = fullfile(figuresFolder, ['b_B_' num2str(b_by_B) '_d_B_' num2str(d_by_B) '_fi_' num2str(phiii) '.fig']);
+savefig(fileName_figure);  
+
 function fill_footing_region_3D(x,y,Zval)
     hold on;
     patch(x, y, Zval * ones(size(x)), 'w', 'FaceAlpha', 1, 'EdgeColor', 'b');

@@ -1,49 +1,60 @@
 close all;
-clear all;
-% clearvars -except phiii fi_values N_g_results;
+% clear all;
+clearvars -except phiii fi_values isTunnelChanging_dash d_by_B d_B_values b_idx row_i row_j b_by_B b_by_B_values results;
 
 plot_enabled = true;
-draw_tunnel = false;
-isTunnelChanging = false;
+draw_tunnel = true;
+isTunnelChanging = isTunnelChanging_dash;
 
 %% Footing Inputs
 B=1;                                             % width of footing
 Df=1;                                           % Depth of footing
 Df_fan_mesh = B/2;                     % height of fan mesh
-L_bound = 20;                             %Length of boundary 16
-D_bound = 8;                              % Depth of boundary  8
-L=L_bound/2 - B/2;                    % left edge distance from origin
+L_bound = 10;                              % Length of boundary 16
+D_bound = 5;                               % Depth of boundary  8
+L=L_bound/2 - B/2;                     % left edge distance from origin
 L_fan_mesh_each_side = B/2;
-N_foot_soil_interf = 10;                 % for half footing width
+N_foot_soil_interf = 10;                % for half footing width
 
 %% Control Parameters
-b_by_B = 0;
-d_by_Df = 15;
+% b_by_B = 0;
+% d_by_B = 7;
 gamma = 0;
 p = 12;
-fi =30;
+fi =phiii;
 c = 20;
 
 %% Tunnel Inputs
 radius = 0.5;
-no_of_interface = 48;
+no_of_interface = 24;
 distance_of_first_square = radius*1.5;
 x_coor_circle_center = (L+B/2 + b_by_B * B);
-if (d_by_Df==0 || Df == 0)
-    y_coor_circle_center = -(distance_of_first_square+1);
+if (d_by_B==0 || Df == 0)
+    y_coor_circle_center = -(distance_of_first_square+15);
 else
-    y_coor_circle_center = -(Df + d_by_Df * Df);
+    y_coor_circle_center = -(Df + d_by_B * B);
 end
 no_of_circles = 2;
 
+%% creating the folder and fileName
+
+folderName = ['Df_B_' num2str(Df/B)];
+if ~exist(folderName, 'dir')
+    mkdir(folderName);  
+end
+subFolderName = [folderName '/b_B_' num2str(b_by_B)];
+if ~exist(subFolderName, 'dir')
+    mkdir(subFolderName);  
+end
+fileName = [subFolderName '/b_B_' num2str(b_by_B) '_d_Df_' num2str(d_by_B) '.mat'];
 
 
 spacing = (8*distance_of_first_square)/(no_of_interface); % spacing of the interfaces
 
 %% Bunch of function calls
 
-[midpointX,midpointY,EmbeddedCoordX,EmbeddedCoordY] = drawRectangularMesh(N_foot_soil_interf,Df_fan_mesh,B,Df,L_fan_mesh_each_side,L,spacing,plot_enabled);
-
+[midpointX,midpointY,EmbeddedCoordX,EmbeddedCoordY] = drawRectangularMesh(N_foot_soil_interf,Df_fan_mesh...
+    ,B,Df,L_fan_mesh_each_side,L,spacing,plot_enabled);
 
 
 %% spacing and division of net mesh
@@ -87,7 +98,15 @@ no_of_element = (size(final_nodes_array,1)/3);
 disp("Number of element: "+ no_of_element);
 
 %% storing nodes for different conditions
-[result_edges,new_node] = findMatchingEdges(final_nodes_array);
+if isTunnelChanging
+    [result_edges,new_node] = findMatchingEdges(final_nodes_array);
+else
+     if exist(fileName, 'file')
+        load(fileName, 'result_edges', 'new_node');
+    else
+        error('Saved file does not exist: %s', fileName);
+    end
+end
 X=[L,L+B]; Y=[-Df,-Df];
 top_boundary_array = find_top_boundary(new_node, X, Y); % finding GL boudnary
 side_boundary_array = find_embeddment_side_boundary(final_nodes_array,L, B, Df); % finding embedment side boudnary
@@ -98,23 +117,15 @@ if draw_tunnel
 end
 footing_interface_array = find_footing_interface_array(EmbeddedCoordX,EmbeddedCoordY,B,final_nodes_array);
 
-%% creating the folder and fileName
-folderName = ['Df_B_' num2str(Df/B)];
-if ~exist(folderName, 'dir')
-    mkdir(folderName);  % Create the folder if it doesn't exist
-end
 
-%  file name based on b/B and d/Df values
-fileName = [folderName '/b_B_' num2str(b_by_B) '_d_Df_' num2str(d_by_Df) '.mat'];
 
 %% Function call for different conditions
 if isTunnelChanging
-
     [A_element, B_element] = ElementEquilibrium(final_nodes_array, no_of_element, gamma);
     [A_bound, B_Boundary] = BoundaryCondition(Df, top_boundary_array, side_boundary_array, tunnel_interface_array, footing_interface_array, no_of_element, draw_tunnel);
     [A_discontinuity, B_discontinuity] = DiscontinuityEquilibrium(result_edges, no_of_element);
 
-    save(fileName, 'A_element', 'B_element', 'A_bound', 'B_Boundary', 'A_discontinuity', 'B_discontinuity');
+    save(fileName, 'A_element', 'B_element', 'A_bound', 'B_Boundary', 'A_discontinuity', 'B_discontinuity','new_node','result_edges');
 else
     % Load the saved data if no need to recalculate
     if exist(fileName, 'file')
